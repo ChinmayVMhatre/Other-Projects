@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+*.egg-info/
+.ipynb_checkpoints/
+# run outputs
+kmc_out/
+snaps/
+*.npz
+trajectory.csv
+_selfcheck_rebuilt.cif
