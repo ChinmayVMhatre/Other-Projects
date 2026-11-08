@@ -2,11 +2,11 @@
 Minimal two-part kMC for UiO-66 missing-linker defects  (ASE + networkx)
 ========================================================================
 
-Part 1 -- attach / detach (3-state: empty / mono / di).
+Part 1 - attach / detach (3-state: empty / mono / di).
 Mono- and di-carboxylic acids compete for the linker sites of the Zr6-node
 graph. Each species has its OWN binding energy E_bind (attach) and desorption
 energy E_diss (detach). A di acid = an intact linker; a mono acid (or an empty
-site) = a missing-linker defect. Per species the adsorption strength is
+site) = a missing-linker defect. Per species, the adsorption strength is
 
         S = E_diss - E_bind          (larger S = sticks better)
 
@@ -17,10 +17,10 @@ and the equilibrium coverages follow K = c * exp(S / kT) with c_di:c_mono = n:1:
   * EQUAL energies for mono & di  ->  the binding terms cancel and
         defect fraction = 1 / (n + 1)   (set by the ratio, independent of T)
   * UNEQUAL energies (e.g. di binds more strongly, larger S_di) -> di is
-        favoured, so there are FEWER defects, and the fraction now depends on
+        favored, so there are FEWER defects, and the fraction now depends on
         temperature (the S-difference is weighted by 1/kT).
 
-Part 2 -- rearrangement to a 1-D transport pathway (trajectory driver).
+Part 2 - rearrangement to a 1-D transport pathway (trajectory driver).
 At the fixed defect fraction from Part 1, defects and linkers swap sites
 (energy-neutral once the fraction is fixed -> unbiased random walk). Percolation
 = a 1-D UNINTERRUPTED pathway for a guest molecule hopping cage -> cage through
@@ -67,7 +67,7 @@ def nodes_from_cif(cif, rep=2, node_cut=4.2):
 
 # --- Part 1: 3-state attach/detach ------------------------------------------
 def equilibrium_defect_fraction(ratio, temp, eb_di, ed_di, eb_mono, ed_mono):
-    """Analytical steady state (uses BOTH binding and desorption energies)."""
+    """ Analytical steady state (uses BOTH binding and desorption energies)."""
     kT = kB * temp
     K_di = ratio * np.exp((ed_di - eb_di) / kT)      # di adsorption constant
     K_mono = 1.0 * np.exp((ed_mono - eb_mono) / kT)  # mono adsorption constant
@@ -116,7 +116,7 @@ def observables(cg, occ):
 
 def run(sg, cg, fraction, detach_rate, n_events=40000, snapshot_every=2000,
         stop_rank=0, outdir="kmc_out", seed=0):
-    """Rearrangement-kMC driver: log the trajectory and print a per-snapshot trace."""
+    """ Rearrangement-kMC driver: log the trajectory and print a per-snapshot trace."""
     os.makedirs(outdir, exist_ok=True)
     log_path = os.path.join(outdir, "trajectory.csv")
     rng = np.random.default_rng(seed)
@@ -166,13 +166,13 @@ def run(sg, cg, fraction, detach_rate, n_events=40000, snapshot_every=2000,
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("pristine_cif")
-    ap.add_argument("--ratio", type=float, default=10.0, help="bulk di:mono ratio n (n:1)")
+    ap.add_argument("--ratio", type=float, default=0.5, help="bulk di:mono ratio n (n:1)")
     ap.add_argument("--temp", type=float, default=400.0, help="temperature in K")
-    ap.add_argument("--eb-di",  type=float, default=0.9, help="di  binding (attach) energy, eV")
-    ap.add_argument("--ed-di",  type=float, default=1.2, help="di  desorption (detach) energy, eV")
-    ap.add_argument("--eb-mono", type=float, default=0.9, help="mono binding (attach) energy, eV")
-    ap.add_argument("--ed-mono", type=float, default=1.2, help="mono desorption (detach) energy, eV")
-    ap.add_argument("--rep", type=int, default=2)
+    ap.add_argument("--eb-di",  type=float, default=0.7, help="di  binding (attach) energy, eV")
+    ap.add_argument("--ed-di",  type=float, default=1.0, help="di  desorption (detach) energy, eV")
+    ap.add_argument("--eb-mono", type=float, default=0.7, help="mono binding (attach) energy, eV")
+    ap.add_argument("--ed-mono", type=float, default=1.0, help="mono desorption (detach) energy, eV")
+    ap.add_argument("--rep", type=int, default=2,help="Repitions of the system in xyz periodicity")
     ap.add_argument("--events", type=int, default=40000)
     ap.add_argument("--snap", type=int, default=2000)
     ap.add_argument("--stop-rank", type=int, default=0)
@@ -200,7 +200,7 @@ if __name__ == "__main__":
     # temperature sweep: show equal (flat) vs the given/unequal case
     print("\n  defect fraction vs temperature:")
     print(f"    {'T(K)':>6} {'equal E':>9} {'this case':>11}")
-    for T in (300, 500, 700, 900, 1100):
+    for T in (300, 400, 500, 600, 700):
         fe = equilibrium_defect_fraction(args.ratio, T, 0.9, 1.2, 0.9, 1.2)
         fc = equilibrium_defect_fraction(temp=T, **eq)
         print(f"    {T:>6} {fe:>9.3f} {fc:>11.3f}")
