@@ -98,7 +98,7 @@ def kmc_match(sg, cg, occ0, ref_feat, steps=40000, tol=0.25, log_every=0):
 
 
 KB = 8.617333e-5          # eV/K
-NU, E_DES = 1.0e13, 1.2    # 1/s attempt frequency, eV desorption energy (FIXED)
+NU, E_DES = 1.0e13, 1.0    # 1/s attempt frequency, eV desorption energy (FIXED)
 
 
 if __name__ == "__main__":
