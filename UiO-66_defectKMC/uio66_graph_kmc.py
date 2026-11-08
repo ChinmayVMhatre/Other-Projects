@@ -101,7 +101,7 @@ class GraphKMCParams:
     # linkers around the shared node), so acid moves easily through already-
     # open channels and is throttled in closed pores. This feedback favours
     # extended open channels over compact blobs.
-    enable_diffusion: bool = True
+    enable_diffusion: bool = False
     nu_diff: float = 1.0e13          # 1/s, acid diffusion attempt frequency
     Ea_diff_closed: float = 1.50     # eV, acid diffusion barrier in a CLOSED pore
                                      # (only the mover missing). Set >= Ea_gate so
