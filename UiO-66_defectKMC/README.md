@@ -66,7 +66,7 @@ Library modules:
 | `uio66_sites.py` | node/linker graph from a CIF, occupancy, percolation core, windows, geometry library |
 | `cage_graph.py` | guest-transport cage graph (cages = nodes, windows = edges); the percolation object |
 | `percolation_path.py` | 1-D pathway displacement metric (direction, magnitude, tortuosity) |
-| `uio66_graph_kmc.py` | graph-space kMC engine, constraints, `random_valid_occupancy` |
+| `uio66_graph_kmc.py` | graph-space kMC code, constraints, `random_valid_occupancy` |
 | `snapshot_io.py` | compose occupancy -> atomic structure, write CIF (no pymatgen) |
 | `mofun_sites.py` | optional MOFUN-based site finding & formate capping |
 
@@ -93,7 +93,7 @@ MOFUN notes, design decisions and caveats).
 ## Notes and caveats
 
 - The 1-D transport percolation uses a window-open criterion equivalent to a
-  ~5 A guest (a window opens when >= 1 of its 3 linkers is missing). The cage
+  ~ 5 \AA guest (a window opens when >= 1 of its 3 linkers is missing). The cage
   graph is validated against known UiO-66 pore topology (4 octahedral + 8
   tetrahedral cages and 32 windows per conventional cell; all-open -> 3-D
   percolation, pristine -> none).
