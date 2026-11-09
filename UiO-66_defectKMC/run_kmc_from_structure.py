@@ -26,7 +26,7 @@ import numpy as np
 
 from uio66_sites import find_nodes, build_site_graph, Frame
 from uio66_graph_kmc import GraphKMC, GraphKMCParams
-from cage_graph import build_cage_graph
+from cage_graph import build_defect_graph
 from percolation_path import pathway_metrics
 
 
@@ -115,21 +115,20 @@ def occupancy_from_positions(sg, cell, P, radius=2.0, min_atoms=4):
 
 # ---------------------------------------------------------------------------
 def monitor(cg, occ):
-    spec = Counter((occ[cg.win_sites] == 0).sum(axis=1).tolist())
-    m1 = pathway_metrics(cg, occ, min_missing=1)
-    m2 = pathway_metrics(cg, occ, min_missing=2)
-    d = {"open1": m1["n_open_windows"], "rank1": m1["rank"],
-         "disp1_mag": m1.get("displacement_magnitude", 0.0),
-         "disp1_over_cell": m1.get("displacement_over_cell", 0.0),
-         "dx": 0.0, "dy": 0.0, "dz": 0.0, "tortuosity1": m1.get("tortuosity", 0.0),
-         "open2": m2["n_open_windows"], "rank2": m2["rank"],
-         "extent2_over_cell": m2.get("extent_over_cell", m2.get("displacement_over_cell", 0.0)),
-         "w0": spec.get(0, 0), "w1": spec.get(1, 0), "w2": spec.get(2, 0), "w3": spec.get(3, 0)}
-    if m1["percolates"]:
-        x = m1["displacement_over_cell_xyz"]
+    """Node-defect percolation monitor (a node is defective if it bears a mono)."""
+    m = pathway_metrics(cg, occ)
+    d = {"mono_node_fraction": m["n_mono_nodes"] / cg.n_nodes,
+         "rank": m["rank"],
+         "disp_mag": m.get("displacement_magnitude", 0.0),
+         "disp_over_cell": m.get("displacement_over_cell", 0.0),
+         "dx": 0.0, "dy": 0.0, "dz": 0.0,
+         "tortuosity": m.get("tortuosity", 0.0),
+         "extent_over_cell": m.get("extent_over_cell", m.get("displacement_over_cell", 0.0)),
+         "largest_mono_cluster": m["largest_mono_cluster"]}
+    if m["percolates"]:
+        x = m["displacement_over_cell_xyz"]
         d["dx"], d["dy"], d["dz"] = float(x[0]), float(x[1]), float(x[2])
     return d
-
 
 def main():
     ap = argparse.ArgumentParser()
@@ -170,7 +169,7 @@ def main():
             occ0 = random_valid_occupancy(sg, frac_in, min_node_degree=2, seed=args.seed)
         else:
             sg, occ0 = sg0, occ_in
-        cg = build_cage_graph(nodes, cell, sg.site_frac, verbose=False)
+        cg = build_defect_graph(sg, verbose=False)
         p = GraphKMCParams(temperature=args.temp, rate_model="environment",
                            dE_per_defect_neighbour=args.dE, enable_diffusion=False,
                            swap_shell="shares_sbu", n_events=args.events,
@@ -179,9 +178,9 @@ def main():
     ndef = int((occ0 == 0).sum())
 
     cols = ["event", "time_s", "mean_defect_neighbours",
-            "open1", "rank1", "disp1_mag", "disp1_over_cell", "dx", "dy", "dz",
-            "tortuosity1", "open2", "rank2", "extent2_over_cell",
-            "w0", "w1", "w2", "w3"]
+            "mono_node_fraction", "rank", "disp_mag", "disp_over_cell",
+            "dx", "dy", "dz", "tortuosity", "extent_over_cell",
+            "largest_mono_cluster"]
     log = open(args.out, "w"); log.write(",".join(cols) + "\n")
 
     # optional snapshot structure saving
@@ -211,15 +210,15 @@ def main():
     print(f"start: {args.structure}  ({ndef} defects, {ndef/sg.n_sites:.0%}), "
           f"T={args.temp:g}K, dE={args.dE} eV"
           + ("  [1x1x1 input -> fresh random 2x2x2]" if substituted else ""))
-    print(f"{'event':>7} {'mean_nbr':>8} | thr1(5A): {'rank':>4} {'|disp|/cell':>11} "
-          f"{'(dx,dy,dz)':>16} | thr2: {'rank':>4} {'extent/cell':>11} | windows[0,1,2,3]")
+    print(f"{'event':>7} {'mean_nbr':>8} {'mono_nodes':>11} {'rank':>5} "
+          f"{'|disp|/cell':>12} {'(dx,dy,dz)':>16} {'extent/cell':>12}")
 
     def show(r):
-        print(f"{r['event']:>7} {r['mean_defect_neighbours']:>8.2f} | "
-              f"{'':>10}{r['rank1']:>4} {r['disp1_over_cell']:>11.2f} "
-              f"({r['dx']:+.1f},{r['dy']:+.1f},{r['dz']:+.1f})".rjust(16) +
-              f" | {'':>6}{r['rank2']:>4} {r['extent2_over_cell']:>11.2f} | "
-              f"[{r['w0']},{r['w1']},{r['w2']},{r['w3']}]")
+        print(f"{r['event']:>7} {r['mean_defect_neighbours']:>8.2f} "
+              f"{r['mono_node_fraction']:>11.3f} {r['rank']:>5} "
+              f"{r['disp_over_cell']:>12.2f} "
+              + f"({r['dx']:+.1f},{r['dy']:+.1f},{r['dz']:+.1f})".rjust(16)
+              + f" {r['extent_over_cell']:>12.2f}")
 
     t = 0.0; show(record(0, t))
     for step in range(1, args.events + 1):
@@ -230,12 +229,16 @@ def main():
         if step % args.snap == 0:
             show(record(step, t))
     log.close()
+
     if occ_log is not None:
         occ_log.save(f"{snap_dir}/occupancies.npz", sg.site_frac, cell)
         print(f"occupancies -> {snap_dir}/occupancies.npz "
               f"({len(occ_log.steps)} snapshots)")
     print(f"trajectory -> {args.out}")
 
+
+if __name__ == "__main__":
+    main()
 
 if __name__ == "__main__":
     main()
