@@ -8,7 +8,8 @@ swap is energy-neutral, so the kMC is an unbiased random walk over arrangements
 at fixed fraction.
 
 Percolation here = a 1-D UNINTERRUPTED PATHWAY for a guest molecule: it travels
-cage -> cage through open (defective) windows and crosses the periodic cell in
+between metal-oxide nodes that bear a monocarboxylic acid (missing-linker
+defect), hopping across the missing linkers, and crosses the periodic cell in
 one direction. We compare GEOMETRIC FEATURES against a known percolating
 reference: the feature is the transport pathway's displacement vector, reduced
 to sorted |components| per cell-edge --
@@ -21,13 +22,17 @@ one and only one uninterrupted transport direction.
 
 Reuses the validated cage_graph.py (guest-transport graph) and
 percolation_path.py (displacement metric). Structure I/O via ASE.
+
+Usage:
+    python uio66_kmc_match_1d.py PRISTINE.cif [KNOWN.cif|KNOWN.lmpdat]
+        [--ratio N] [--temp K] [--seeds S] [--rep R] [--steps M]
+    # KNOWN is optional; omit it to match an ideal direct 1-D channel.
 """
 import numpy as np
 import networkx as nx
-from ase.io import read
 
 from uio66_sites import build_site_graph
-from cage_graph import build_cage_graph
+from cage_graph import build_defect_graph
 from percolation_path import pathway_metrics
 from uio66_graph_kmc import random_valid_occupancy
 
@@ -36,6 +41,7 @@ RNG = np.random.default_rng(0)
 
 def nodes_from_cif(cif, rep=2, node_cut=4.2):
     """Zr6 node centroids from a pristine CIF, tiled rep^3."""
+    from ase.io import read
     a = read(cif); cell = a.cell.array; inv = np.linalg.inv(cell)
     zr = a.positions[a.numbers == 40]
     mic = lambda d: (d @ inv - np.round(d @ inv)) @ cell
@@ -54,6 +60,7 @@ def occupancy_from_file(path, sg, cell, radius=2.0):
     """Occupancy (1 intact / 0 defect) by atoms near each site midpoint.
     Reads a CIF (element symbols) or LAMMPS data (positions only)."""
     if path.lower().endswith(".cif"):
+        from ase.io import read
         a = read(path); P = a.positions
     else:
         lines = [l.rstrip() for l in open(path)]
@@ -98,7 +105,7 @@ def kmc_match(sg, cg, occ0, ref_feat, steps=40000, tol=0.25, log_every=0):
 
 
 KB = 8.617333e-5          # eV/K
-NU, E_DES = 1.0e13, 1.0    # 1/s attempt frequency, eV desorption energy (FIXED)
+NU, E_DES = 1.0e13, 1.2    # 1/s attempt frequency, eV desorption energy (FIXED)
 
 
 if __name__ == "__main__":
@@ -107,9 +114,11 @@ if __name__ == "__main__":
         description="Rearrange a random dilute defect structure into a 1-D "
                     "percolating one; match a known structure by its transport-"
                     "pathway displacement feature.")
-    ap.add_argument("pristine_cif")
-    ap.add_argument("--known", default=None,
-                    help="known percolating structure (CIF/LAMMPS) for the reference feature")
+    ap.add_argument("pristine_cif", help="pristine UiO-66 cell (CIF)")
+    ap.add_argument("known", nargs="?", default=None,
+                    help="known percolating structure (CIF or LAMMPS) whose 1-D "
+                         "transport-pathway feature is the match target; omit to "
+                         "match an ideal direct 1-D channel")
     ap.add_argument("--ratio", type=float, default=9.0,
                     help="bulk di:mono acid ratio n (:1); defect fraction = 1/(n+1)")
     ap.add_argument("--temp", type=float, default=500.0,
@@ -126,8 +135,8 @@ if __name__ == "__main__":
 
     nodes, cell = nodes_from_cif(args.pristine_cif, rep=args.rep)
     sg = build_site_graph(nodes, cell, hop_shell="shares_sbu", verbose=False)
-    cg = build_cage_graph(nodes, cell, sg.site_frac, verbose=False)
-    print(f"{len(nodes)} nodes, {sg.n_sites} sites, {cg.n_cages} cages")
+    cg = build_defect_graph(sg, verbose=False)
+    print(f"{len(nodes)} Zr6 nodes, {sg.n_sites} linker sites (node defective if it bears a mono)")
     print(f"acid ratio di:mono = {args.ratio:g}:1  ->  defect fraction {frac:.1%}")
     print(f"temperature {args.temp:g} K  ->  {dt:.2e} s per swap "
           f"(E_des = {E_DES} eV, fixed; energy-neutral swaps, so T sets time not outcome)")
