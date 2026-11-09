@@ -93,7 +93,7 @@ MOFUN notes, design decisions and caveats).
 ## Notes and caveats
 
 - The 1-D transport percolation uses a window-open criterion equivalent to a
-  ~ 5 \AA guest (a window opens when >= 1 of its 3 linkers is missing). The cage
+  ~ 5 $\dot{A}$ guest (a window opens when >= 1 of its 3 linkers is missing). The cage
   graph is validated against known UiO-66 pore topology (4 octahedral + 8
   tetrahedral cages and 32 windows per conventional cell; all-open -> 3-D
   percolation, pristine -> none).
